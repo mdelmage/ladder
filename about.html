@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="add ladder app">    <title>Add ladder!</title>    
+    <meta name="description" content="Privacy Policy">    <title>About ladder</title>    
     <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.1/build/pure-min.css" integrity="sha384-" crossorigin="anonymous">
     
     <!--[if lte IE 8]>
@@ -41,75 +41,14 @@
             <div class="posts">
                 <section class="post">
                     <header class="post-header">
-                        <h3 class="post-title">
-<?php
-//error_reporting(E_ALL);
-
-// Modfiy these to match your database credentials
-$dbname = '';
-$dbuser = '';
-$dbpass = '';
-$dbhost = 'localhost';
-
-// fill in your client/secret pair here
-$client_id = "";
-$client_secret = "";
-
-$rsp = ["response_type" => "in_channel", "text" => ""];
-$code = $_GET["code"];
-
-// fill in your URLs here
-$redirect = "https://shittykeming.com/elo/auth.php";
-
-$url = "https://slack.com/api/oauth.access";
-$data = array("client_id" => $client_id,
-    "client_secret" => $client_secret,
-    "code" => $code,
-    "redirect_uri" => $redirect);
-
-// use key 'http' even if you send the request to https://...
-$options = array(
-    'http' => array(
-        'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
-        'method'  => 'POST',
-        'content' => http_build_query($data)
-    )
-);
-$context  = stream_context_create($options);
-$result = file_get_contents($url, false, $context);
-$rsp = json_decode($result, true);
-
-if ($result === FALSE || $rsp["ok"] != true) {
-    echo "Uh oh! Something went wrong.";
-}
-else {
-    echo "Welcome to the ladder, " . $rsp["team_name"] . "!";
-
-    // Save our team-specific token, overwriting any previous copies
-    $mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-    $team_id = $rsp["team_id"];
-    $token = $rsp["access_token"];
-
-    $sql = "SELECT 1 from " . $team_id . " LIMIT 1";
-    $result = $mysqli->query($sql);
-    if ($result->num_rows == 0) {
-        $sql = "CREATE TABLE " . $team_id . "(`token` VARCHAR(256) NOT NULL, `emoji` VARCHAR(1024) NOT NULL, `team_name` VARCHAR(1024) NOT NULL, PRIMARY KEY (`token`))";
-        $mysqli->query($sql);
-
-        $sql = "INSERT INTO " . $team_id . "(`token`, `emoji`, `team_name`) VALUES ('" . $token . "', ' ', '" . $rsp["team_name"] . "');";
-        $mysqli->query($sql);
-    }
-    else {
-        $sql = "UPDATE " . $team_id . " SET token='" . $token . "' WHERE 1;";
-        $mysqli->query($sql);
-    }
-}
-?></h3>
+                        <h3 class="post-title">About ladder</h3>
                     </header>
 
                     <div class="post-description">
                         <p>
-                        Join us on the ladder and see who's the best. <a href="https://shittykeming.com/elo">Let's get started!</a></p>
+                            ladder was created to inspire social interaction and smack-talk in Slack workspaces around the world!</p>
+                        <p>Do you have a bug report, feature request, or funny story? Contact <a href="mailto:matt@delmageconsulting.com">the developer</a>!
+        </p>
                     </div>
                 </section>
             </div>

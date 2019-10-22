@@ -1,9 +1,89 @@
-<html>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ladder app's main feed.">    <title>ladder: A Slack App</title>    
+    <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.1/build/pure-min.css" integrity="sha384-" crossorigin="anonymous">
+    
+    <!--[if lte IE 8]>
+        <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.1/build/grids-responsive-old-ie-min.css">
+    <![endif]-->
+    <!--[if gt IE 8]><!-->
+        <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.1/build/grids-responsive-min.css">
+    <!--<![endif]-->
+    
+    
+        <!--[if lte IE 8]>
+            <link rel="stylesheet" href="https://shittykeming.com/css/layouts/blog-old-ie.css">
+        <![endif]-->
+        <!--[if gt IE 8]><!-->
+            <link rel="stylesheet" href="https://shittykeming.com/css/layouts/blog.css">
+        <!--<![endif]-->
+<link rel="icon" 
+      type="image/png" 
+      href="https://shittykeming.com/img/ladder_icon.png">
+</head>
 <body>
-Welcome to Ladder!
 
-Please contact <a href="mailto:matt@delmageconsulting.com">the developer</a> for support or feature requests.
-<p>
-<a href="https://slack.com/oauth/authorize?scope=commands&client_id=730091785120.731958520471"><img alt=""Add to Slack"" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcset="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" /></a>
+<div id="layout" class="pure-g">
+    <div class="sidebar pure-u-1 pure-u-md-1-4">
+        <div class="header">
+            <h1 class="brand-title">ladder: A Slack App</h1>
+            <h2 class="brand-tagline">Victory. Defeat. Elo.</h2>
+            <img width="128" height="128" alt="ladder logo" class="post-avatar" src="https://shittykeming.com/img/ladder.png">
+        </div>
+    </div>
+
+    <div class="content pure-u-1 pure-u-md-3-4">
+        <div>
+            <!-- A wrapper for all the blog posts -->
+            <div class="posts">
+                <h1 class="content-subhead">Recent Posts</h1>
+
+                <section class="post">
+                    <header class="post-header">
+                        <img width="48" height="48" alt="ladder logo" class="post-avatar" src="https://shittykeming.com/img/ladder.png">
+
+                        <h3 class="post-title">About ladder</h3>
+
+                        <p class="post-meta">
+                            20 August 2019 by <a class="post-author" href="mailto:matt@delmageconsulting.com">Matt</a> under <a class="post-category post-category-announce" href="#">Announcements</a>
+                        </p>
+                    </header>
+
+                    <div class="post-description">
+                        <p>
+                            We are happy to announce the release of ladder, an Elo leaderboard app for Slack! You can install it via <a href="https://slack.com/oauth/authorize?client_id=730091785120.731958520471&scope=commands,user:read,emoji:read">direct URL</a>, or by clicking the button below:
+                        </p>
+                        <a href="https://slack.com/oauth/authorize?client_id=730091785120.731958520471&scope=commands,users:read,emoji:read"><img alt="Add to Slack" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcset="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"></a>
+                        <h5>Getting Started</h5>
+                        <p>Everyone starts at a rating of 1200. To get a leaderboard started, create a new room in Slack. Each room gets its own leaderboard, so go nuts! <a href="#">#ping-pong</a>, <a href="#">#pool-8-ball</a>, and <a href="#">#pool-9-ball</a> can all live side-by-side in your workspace.</p>
+                        <p>Once you have a room created, enter a match!</p>
+                        <img width="301" src="https://shittykeming.com/img/example_1.png">
+                        <p>You can enter multiple games at once. All wins are recorded first, then all losses.</p>
+                        <img width="318" src="https://shittykeming.com/img/example_2.png">
+                        <p>Now let's fast forward a little bit. I've added some fake users to show what an Elo ladder might end up looking like. Type "/ladder top" to see the best players!</p>
+                        <img width="396" src="https://shittykeming.com/img/example_3.png">
+                        <p>Notice that the ratings are accompanied by colorful emoji. You can customize these for your own workspace by adding emoji of the form :ladder_[score_range]:, which are done in 50-Elo increments. Shown above: :ladder_1250:, :ladder_1200:, :ladder_1150:, and :ladder_1100:. A default emoji (:white_medium_square:) will be used for any missing scores. Download ladder's default image theme <a href="https://shittykeming.com/img/stock/">here</a>!</p>
+                    </div>
+                </section>
+            </div>
+
+            <div class="footer">
+                <div class="pure-menu pure-menu-horizontal">
+                    <ul>
+                        <li class="pure-menu-item"><a href="https://shittykeming.com/elo/about.html" class="pure-menu-link">About</a></li>
+                        <li class="pure-menu-item"><a href="https://shittykeming.com/elo" class="pure-menu-link">Feed</a></li>
+                        <li class="pure-menu-item"><a href="https://shittykeming.com/elo/privacy.html" class="pure-menu-link">Privacy Policy</a></li>
+                        <li class="pure-menu-item"><a href="http://github.com/mdelmage/ladder/" class="pure-menu-link">GitHub</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 </body>
 </html>
