@@ -910,7 +910,7 @@ function sql_list($sql)
     }
 
     $text = slack_emoji("ladder_blank") . \
-        fixed_width_string("Elo", 60) . \
+        fixed_width_string(" Elo", 60) . \
         fixed_width_string("W", 35) . \
         fixed_width_string("L", 35) .
         "Player\r\n";
@@ -937,7 +937,7 @@ function sql_list($sql)
 
         if (($list_length == 1) || !($player["deactivated"])) {
             $text .= $elo_medallion . \
-                fixed_width_string($player["elo"], 60) . \
+                fixed_width_string(" " . $player["elo"], 60) . \
                 fixed_width_string($player["wins"] + $player["dwins"], 35) . \
                 fixed_width_string($player["losses"] + $player["dlosses"], 35) . \
                 escaped_name($player) . "\r\n";
