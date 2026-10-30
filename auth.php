@@ -55,13 +55,12 @@ $dbhost = 'localhost';
 $client_id = "";
 $client_secret = "";
 
+
 $rsp = ["response_type" => "in_channel", "text" => ""];
 $code = $_GET["code"];
-
-// fill in your URLs here
 $redirect = "https://shittykeming.com/elo/auth.php";
 
-$url = "https://slack.com/api/oauth.access";
+$url = "https://slack.com/api/oauth.v2.access";
 $data = array("client_id" => $client_id,
     "client_secret" => $client_secret,
     "code" => $code,
@@ -83,11 +82,11 @@ if ($result === FALSE || $rsp["ok"] != true) {
     echo "Uh oh! Something went wrong.";
 }
 else {
-    echo "Welcome to the ladder, " . $rsp["team_name"] . "!";
+    echo "Welcome to the ladder, " . $rsp["team"]["name"] . "!";
 
     // Save our team-specific token, overwriting any previous copies
     $mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-    $team_id = $rsp["team_id"];
+    $team_id = $rsp["team"]["id"];
     $token = $rsp["access_token"];
 
     $sql = "SELECT 1 from " . $team_id . " LIMIT 1";

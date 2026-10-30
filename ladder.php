@@ -10,9 +10,9 @@
 //  (ASCII art by http://patorjk.com/software/taag/)        
 
 // Modfiy these to match your database credentials
-$dbname = "";
-$dbuser = "";
-$dbpass = "";
+$dbname = '';
+$dbuser = '';
+$dbpass = '';
 $dbhost = 'localhost';
 $varchar = 'VARCHAR(40)';
 
@@ -27,7 +27,7 @@ $signing_secret = "";
 
 $command_name = "/ladder";
 $bot_name = "ladder";
-$version = "0.8.6";
+$version = "1.0.0";
 
 $win_thesaurus =
 array("beat",
@@ -35,6 +35,8 @@ array("beat",
 "tied",
 "matched",
 "split",
+"swindled",
+"hustled",
 "rocked",
 "sandbagged",
 "punished",
@@ -58,7 +60,6 @@ array("beat",
 "obliterated",
 "smote",
 "withstood",
-"sebastianed",
 "survived",
 "endured",
 "decimated",
@@ -83,6 +84,8 @@ array("beat",
 "humbled",
 "overpowered",
 "conquered",
+"snookered",
+"shredded",
 "smoked");
 
 $emoji = array();
@@ -103,10 +106,13 @@ $rsp = ["response_type" => "in_channel", "text" => ""];
 // Could be the first invocation; set up tables in the DB as required
 $instance_id = $_POST["team_id"] . "_" . $_POST["channel_id"];
 $team_id = $_POST["team_id"];
+$channel_id = $_POST["channel_id"];
 $user_id = $_POST["user_id"];
 $response_url = $_POST["response_url"];
-init_instance();
 
+if ($instance_id != NULL and $team_id != NULL) {
+  init_instance();
+}
 
 //    __                  _   _                 
 //   / _|                | | (_)                
@@ -115,6 +121,22 @@ init_instance();
 //  | | | |_| | | | | (__| |_| | (_) | | | \__ \
 //  |_|  \__,_|_| |_|\___|\__|_|\___/|_| |_|___/
 //                                              
+
+function respondOK()
+{
+global $rsp;
+ignore_user_abort(true);
+set_time_limit(0);
+
+ob_start();
+// do initial processing here
+echo json_encode($rsp); // send the response
+header('Connection: close');
+header('Content-Length: '.ob_get_length());
+ob_end_flush();
+ob_flush();
+flush();
+}
 
 function calculate_text_box($font_size, $font_angle, $font_file, $text) { 
   $box   = imagettfbbox($font_size, $font_angle, $font_file, $text); 
@@ -158,10 +180,8 @@ function calculate_text_box($font_size, $font_angle, $font_file, $text) {
                 "height" => $rbottom - $rtop + 1 ); 
 } 
 
-function validate_slack_request()
+function validate_slack_request($secret)
 {
-    global $signing_secret;
-
     $validation_version = "v0";
     $request_time = $_SERVER['HTTP_X_SLACK_REQUEST_TIMESTAMP'];
     $signature = $_SERVER['HTTP_X_SLACK_SIGNATURE'];
@@ -175,7 +195,7 @@ function validate_slack_request()
         $validation_str .= $key . "=" . urlencode($value) . "&";
     }
     $validation_str = substr($validation_str, 0, -1);
-    $hash = $validation_version . "=" . hash_hmac("sha256", $validation_str, $signing_secret);
+    $hash = $validation_version . "=" . hash_hmac("sha256", $validation_str, $secret);
 
     return ($recent_time && ($hash == $signature));
 }
@@ -273,9 +293,26 @@ function slack_emoji($text)
     global $team_id;
     global $emoji_default;
 
-    // TODO: workaround until we get emoji tokens on all workspaces
-    if ($team_id == "TDT7CKK3R" || in_array($text, $emoji)) {
+    if (in_array($text, $emoji)) {
         return ":" . $text . ":";
+    }
+    else {
+        return $emoji_default;
+    }
+}
+
+function rank_emoji($text)
+{
+    global $emoji;
+    global $team_id;
+    global $bot_name;
+    global $emoji_default;
+
+    if (in_array($text, $emoji)) {
+        return ":" . $text . ":";
+    }
+    else if (in_array($bot_name . "_blank", $emoji)) {
+        return ":" . $bot_name . "_blank:";
     }
     else {
         return $emoji_default;
@@ -401,9 +438,9 @@ function starts_with($haystack, $needle)
     return (substr($haystack, 0, $length) === $needle);
 }
 
-function contains($haystack, $haystack)
+function contains($haystack, $needle)
 {
-    return (strpos($haystack, $haystack) !== false);
+    return (strpos($haystack, $needle) !== false);
 }
 
 function looks_like_user_id($user_string)
@@ -471,14 +508,14 @@ function init_instance()
   global $instance_id;
   global $emoji;
 
-  $sql = "SELECT 1 from " . $instance_id . "_matches LIMIT 1";
+  $sql = "SHOW TABLES LIKE '" . $instance_id . "_matches'";
   $result = $mysqli->query($sql);
   if ($result->num_rows == 0) {
       $sql = "CREATE TABLE " . $instance_id . "_matches ( `id` INT NOT NULL AUTO_INCREMENT , `match_date` DATETIME NOT NULL , `winner_id` " . $varchar . " NOT NULL , `loser_id` " . $varchar . " NOT NULL , `winner2_id` " . $varchar . " NULL , `loser2_id` " . $varchar . " NULL , `winner_elo` INT NULL, `loser_elo` INT NULL, `winner2_elo` INT NULL, `loser2_elo` INT NULL, PRIMARY KEY (`id`))";
       $mysqli->query($sql);
   }
 
-  $sql = "SELECT 1 from " . $instance_id . "_users LIMIT 1";
+  $sql = "SHOW TABLES LIKE '" . $instance_id . "_users'";
   $result = $mysqli->query($sql);
   if ($result->num_rows == 0) {
       $sql = "CREATE TABLE " . $instance_id . "_users ( `id` " . $varchar . " NOT NULL, `elo` INT NOT NULL , `wins` INT NOT NULL , `losses` INT NOT NULL , `dwins` INT NOT NULL , `dlosses` INT NOT NULL , `deactivated` INT NULL, PRIMARY KEY (`id`))";
@@ -493,7 +530,7 @@ function init_instance()
       $mysqli->query($sql);
   }
 
-  $sql = "SELECT 1 from " . $instance_id . "_ratings LIMIT 1";
+  $sql = "SHOW TABLES LIKE '" . $instance_id . "_ratings'";
   $result = $mysqli->query($sql);
   if ($result->num_rows == 0) {
       $sql = "CREATE TABLE " . $instance_id . "_ratings ( `id` INT NOT NULL AUTO_INCREMENT , `rating_date` DATETIME NOT NULL , `player_id` " . $varchar . " NOT NULL , `elo` INT NOT NULL, PRIMARY KEY (`id`))";
@@ -636,6 +673,11 @@ function singles_match($player_a, $player_b, $wins_losses)
         $player_a_won = !$player_a_won;
     }
 
+    if ($wins_losses[0] == "0")
+    {
+        add_response_section_context("Asshat Reporting Method™");
+    }
+
     if ($streak_capped || (sizeof($wins_losses) > $max_streak_count)) {
         add_response_section_context("Matches are limited to " . $max_streak_count . " 'streaks', with up to " . $max_streak . " games per streak.");
     }
@@ -732,7 +774,7 @@ function add_response_section_divider()
 function add_response_section_image($url, $caption)
 {
     global $rsp;
-    $rsp["blocks"][] = ["type" => "image", "title" => ["type" => "plain_text", "text" => $caption, "emoji" => true], "image_url" => $url, "alt_text" => $caption];
+    $rsp["blocks"][] = ["type" => "image", "image_url" => "https://shittykeming.com/elo/" . $url, "alt_text" => $caption];
 }
 
 function format_preview($player_a, $player_b, $wins_losses, $wins, $losses, $wins_losses_str)
@@ -796,7 +838,7 @@ function command_preview($token_a, $token_b, $wins_losses)
         }
         $text .= "\r\n\r\n";
 
-        if (sizeof($wins_losses)) {
+        if ($wins_losses != NULL) {
             $streak_capped = false;
             $running_elo_a = $player_a["elo"];
             $running_elo_b = $player_b["elo"];
@@ -895,6 +937,7 @@ function command_preview($token_a, $token_b, $wins_losses)
 function sql_list($sql)
 {
     global $mysqli;
+    global $bot_name;
     global $command_name;
     global $ladder_print_len_max;
 
@@ -905,13 +948,12 @@ function sql_list($sql)
 
     if ($result->num_rows > $ladder_print_len_max) {
         $context = "Output limited to " . $ladder_print_len_max . " players";
-        
         add_response_section_context($context);
     }
 
-    $text = slack_emoji("ladder_blank") . \
-        fixed_width_string("Elo", 60) . \
-        fixed_width_string("W", 35) . \
+    $text = slack_emoji($bot_name . "_blank") .
+        fixed_width_string("Elo", 60) .
+        fixed_width_string("W", 35) .
         fixed_width_string("L", 35) .
         "Player\r\n";
 
@@ -929,19 +971,68 @@ function sql_list($sql)
         $player = init_user($row["id"]);
         $player = update_user($player);
         if ($player["deactivated"]) {
-            $elo_medallion = slack_emoji("ladder_rip");
+            $elo_medallion = slack_emoji($bot_name . "_rip");
         }
         else {
-            $elo_medallion = slack_emoji("ladder_" . (floor($player["elo"] / 50) * 50));
+            $elo_medallion = slack_emoji($bot_name . "_" . (floor($player["elo"] / 50) * 50));
         }
 
         if (($list_length == 1) || !($player["deactivated"])) {
-            $text .= $elo_medallion . \
-                fixed_width_string($player["elo"], 60) . \
-                fixed_width_string($player["wins"] + $player["dwins"], 35) . \
-                fixed_width_string($player["losses"] + $player["dlosses"], 35) . \
+            $text .= $elo_medallion .
+                fixed_width_string($player["elo"], 60) .
+                fixed_width_string($player["wins"] + $player["dwins"], 35) .
+                fixed_width_string($player["losses"] + $player["dlosses"], 35) .
                 escaped_name($player) . "\r\n";
         }
+    }
+    add_response_section_fancy_text($text);
+}
+
+function ranked_sql_list($sql)
+{
+    global $mysqli;
+    global $bot_name;
+    global $channel_id;
+    global $command_name;
+    global $ladder_print_len_max;
+
+    $text = "";
+    $players = array();
+
+    $result = $mysqli->query($sql);
+
+    if ($result->num_rows > $ladder_print_len_max) {
+        $context = "Output limited to " . $ladder_print_len_max . " players";
+        add_response_section_context($context);
+    }
+
+    $text = slack_emoji($bot_name . "_blank") .
+        slack_emoji($bot_name . "_blank") .
+        fixed_width_string("Elo", 60) .
+        fixed_width_string("W", 35) .
+        fixed_width_string("L", 35) .
+        "Player\r\n";
+
+    add_response_section_fancy_text($text);
+    add_response_section_divider();
+
+    if ($result->num_rows == 0) {
+        return;
+    }
+
+    $text = "";
+    $list_length = min($ladder_print_len_max, $result->num_rows);
+    for ($i = 0; $i < $list_length; $i++) {
+        $row = mysqli_fetch_assoc($result);
+        $player = init_user($row["id"]);
+        $player = update_user($player);
+        $elo_medallion = slack_emoji($bot_name . "_" . (floor($player["elo"] / 50) * 50));
+
+        $text .= rank_emoji($bot_name . "_" . strtolower($channel_id) . "_top" . ($i + 1)) . $elo_medallion .
+            fixed_width_string($player["elo"], 60) .
+            fixed_width_string($player["wins"] + $player["dwins"], 35) .
+            fixed_width_string($player["losses"] + $player["dlosses"], 35) .
+            escaped_name($player) . "\r\n";
     }
     add_response_section_fancy_text($text);
 }
@@ -949,17 +1040,24 @@ function sql_list($sql)
 function command_top($n)
 {
     global $instance_id;
-    global $team_id;
+    global $channel_id;
+    global $bot_name;
+    global $emoji;
 
     $where_clause = "WHERE (wins + dwins + losses + dlosses) > 0 AND deactivated is NULL";
-    $sql = "SELECT id, elo from " . $instance_id . "_users " . $where_clause . " ORDER BY elo DESC LIMIT " . $n;
-    sql_list($sql);
+    $sql = "SELECT id, elo from " . $instance_id . "_users " . $where_clause . " ORDER BY elo DESC, id DESC LIMIT " . $n;
+
+    if (in_array($bot_name . "_" . strtolower($channel_id) . "_top1", $emoji)) {
+        ranked_sql_list($sql);
+    }
+    else {
+        sql_list($sql);
+    }
 }
 
 function command_bottom($n)
 {
     global $instance_id;
-    global $team_id;
 
     $where_clause = "WHERE (wins + dwins + losses + dlosses) > 0 AND deactivated is NULL";
     $sql = "SELECT * FROM (SELECT id, elo from " . $instance_id . "_users " . $where_clause . " ORDER BY elo LIMIT " . $n . ") result ORDER BY elo DESC";
@@ -978,6 +1076,133 @@ function command_users($users)
 
     $sql = "SELECT * from " . $instance_id . "_users WHERE " . $users_str . " ORDER BY ELO DESC";
     sql_list($sql);
+}
+
+function command_undo($users)
+{
+    global $mysqli;
+    global $instance_id;
+    $users_string = "";
+    $sql = "";
+
+    // First, sanity check whether we can undo matches involving these users
+    for ($i = 0; $i < count($users); $i++) {
+        $user = $users[$i]["id"];
+        if ($i > 0) {
+            $sql .= " UNION ";
+            $users_string .= ", '" . $user . "'";
+        }
+        else {
+            $users_string .= "('" . $user . "'";
+        }
+
+        $sql .= "SELECT '" . $user . "' as `user`, `id` FROM (SELECT `id` from " . $instance_id . "_matches WHERE `winner_id` = '" . $user . "' OR `loser_id` = '" . $user . "' OR `winner2_id` = '" . $user . "' OR `loser2_id` = '" . $user . "' ORDER BY `id` DESC LIMIT 1) " . $user;
+    }
+    $users_string .= ")";
+
+    $result = $mysqli->query($sql);
+    if ($result->num_rows != count($users)) {
+        // nope
+        respond_private("Sorry! I couldn't find a set of matches to undo! :dizzy_face:");
+        return;
+    }
+    else {
+        // yep
+        $row = mysqli_fetch_assoc($result);
+        $match_id = $row["id"];
+
+        while ($row = $result->fetch_assoc()) {
+            if ($row["id"] != $match_id) {
+                respond_private("Oh no! I found a set of matches to undo, but there have been subsequent entries recorded since then. It's too late!");
+                return;
+            }
+        }
+    }
+
+    // Now calculate which matches we should undo
+    $sql = "SELECT * FROM " . $instance_id . "_matches WHERE (`winner_id` IN " . $users_string . ") AND (`loser_id` IN " . $users_string . ")";
+    if (count($users) > 2) {
+        $sql .= " AND (`winner2_id` IN " . $users_string . ") AND (`loser2_id` IN " . $users_string . ")";
+    }
+    else {
+        $sql .= " AND (`winner2_id` IS NULL) AND (`loser2_id` IS NULL)";
+    }
+    $sql .= " ORDER BY `id` DESC";
+    $result = $mysqli->query($sql);
+
+    add_response_section_fancy_text("Okay, winding back games...");
+
+    $row = mysqli_fetch_assoc($result);
+    $match_id = $row["id"];
+    $match_date = $row["match_date"];
+    $matches_string = "(" . $match_id;
+
+    // Keep track of new user W-L records
+    for ($i = 0; $i < count($users); $i++) {
+        if (count($users) > 2) {
+            if ($users[$i]["id"] == $row["winner_id"]) $users[$i]["dwins"]--;
+            if ($users[$i]["id"] == $row["loser_id"]) $users[$i]["dlosses"]--;
+        }
+        else {
+            if ($users[$i]["id"] == $row["winner_id"]) $users[$i]["wins"]--;
+            if ($users[$i]["id"] == $row["loser_id"]) $users[$i]["losses"]--;
+        }
+        if ($users[$i]["id"] == $row["winner2_id"]) $users[$i]["dwins"]--;
+        if ($users[$i]["id"] == $row["loser2_id"]) $users[$i]["dlosses"]--;
+    }
+
+    while ($row = mysqli_fetch_assoc($result)) {
+        if ($row["id"] == $match_id - 1) {
+            $matches_string .= ", " . $row["id"];
+            $match_id = $row["id"];
+            $match_date = $row["match_date"];
+
+            // Keep track of new user W-L records
+            for ($i = 0; $i < count($users); $i++) {
+                if (count($users) > 2) {
+                    if ($users[$i]["id"] == $row["winner_id"]) $users[$i]["dwins"]--;
+                    if ($users[$i]["id"] == $row["loser_id"]) $users[$i]["dlosses"]--;
+                }
+                else {
+                    if ($users[$i]["id"] == $row["winner_id"]) $users[$i]["wins"]--;
+                    if ($users[$i]["id"] == $row["loser_id"]) $users[$i]["losses"]--;
+                }
+                if ($users[$i]["id"] == $row["winner2_id"]) $users[$i]["dwins"]--;
+                if ($users[$i]["id"] == $row["loser2_id"]) $users[$i]["dlosses"]--;
+            }
+        }
+        else {
+            break;
+        }
+    }
+    $matches_string .= ")";
+
+    // Go back into the history to find the old Elo ratings
+    for ($i = 0; $i < count($users); $i++) {
+        $sql = "SELECT * FROM (SELECT * FROM `" . $instance_id . "_ratings` WHERE `player_id` = '" . $users[$i]["id"] . "' AND `rating_date` <= DATE_SUB('" . $match_date . "', INTERVAL 3 SECOND)";
+        $sql .= " UNION SELECT 0 as `id`, '2009' as `rating_date`, '" . $users[$i]["id"] . "' as player_id, 1200 as elo FROM `" . $instance_id . "_ratings`) ratings ORDER BY `id` DESC LIMIT 1";
+        $result = $mysqli->query($sql);
+        $row = mysqli_fetch_assoc($result);
+        $users[$i]["elo"] = $row["elo"];
+
+        // Do the actual Elo and W/L updates
+        $sql = "UPDATE `" . $instance_id . "_users` SET";
+        $sql .= " elo=" . $users[$i]["elo"];
+        $sql .= ", wins=" . $users[$i]["wins"];
+        $sql .= ", losses=" . $users[$i]["losses"];
+        $sql .= ", dwins=" . $users[$i]["dwins"];
+        $sql .= ", dlosses=" . $users[$i]["dlosses"];
+        $sql .= " WHERE `id`='" . $users[$i]["id"] . "';";
+        $result = $mysqli->query($sql);
+    }
+
+    // Nuke the ratings and matches
+    $sql = "DELETE FROM `" . $instance_id . "_matches` WHERE `id` IN " . $matches_string;
+    $result = $mysqli->query($sql);
+    $sql = "DELETE FROM `" . $instance_id . "_ratings` WHERE `player_id` IN " . $users_string . " AND `rating_date` > DATE_SUB('" . $match_date . "', INTERVAL 3 SECOND)";
+    $result = $mysqli->query($sql);
+
+    command_users($users);
 }
 
 function cleanup()
@@ -1016,7 +1241,8 @@ $command = rtrim(preg_replace('/\s+/', ' ', $command));
 $tokens = explode(" ", $command);
 
 // Verify that this request actually came from Slack
-if (!validate_slack_request()) {
+if (!validate_slack_request($signing_secret)) {
+    header("HTTP/1.1 401 Unauthorized");
     exit;
 }
 //else if (contains($command, "UFQSPSL4F")) {
@@ -1230,40 +1456,72 @@ else if (sizeof($tokens) >= 1 &&
     add_response_section_fancy_text($text);
     respond_private();
 }
-// Test API
-else if (sizeof($tokens) >= 1 &&
-    strtolower($tokens[0]) === "apitest") {
-    $username = retrieve_slack_username($user_id);
+// Undo singles match(es) command
+else if (sizeof($tokens) >= 4 &&
+    strtolower($tokens[0]) === "undo" &&
+    looks_like_user_id($tokens[1]) &&
+    starts_with(strtolower($tokens[2]), "vs") &&
+    looks_like_user_id($tokens[3])) {
 
-    add_response_section_fancy_text("hi!");
-    
-    // use key 'http' even if you send the request to https://...
-    $options = array(
-        'http' => array(
-            'header'  => "Content-type: application/json\r\n",
-            'method'  => "POST",
-            'content' => json_encode($rsp)
-        )
-    );
-    $context  = stream_context_create($options);
-    $result = file_get_contents($response_url, false, $context);
+    // Calculate who the players are.
+    $uid_a = mention_to_user_id($tokens[1]);
+    $uid_b = mention_to_user_id($tokens[3]);
 
-    add_response_section_fancy_text("hi there!");
+    $player_a = init_user($uid_a);
+    $player_b = init_user($uid_b);
+    $player_a = update_user($player_a);
+    $player_b = update_user($player_b);
 
-    // use key 'http' even if you send the request to https://...
-    $options = array(
-        'http' => array(
-            'header'  => "Content-type: application/json\r\n",
-            'method'  => "POST",
-            'content' => json_encode($rsp)
-        )
-    );
-    $context  = stream_context_create($options);
-    $result = file_get_contents($response_url, false, $context);
+    // Try to undo matches with these two players
+    command_undo(array($player_a, $player_b));
+}
+// Undo doubles match(es) command
+else if (sizeof($tokens) >= 8 &&
+    strtolower($tokens[0]) === "undo" &&
+    looks_like_user_id($tokens[1]) &&
+    strtolower($tokens[2]) === "and" &&
+    looks_like_user_id($tokens[3]) &&
+    starts_with(strtolower($tokens[4]), "vs") &&
+    looks_like_user_id($tokens[5]) &&
+    strtolower($tokens[6]) === "and" &&
+    looks_like_user_id($tokens[7])) {
 
-    // Bail out early
-    //cleanup();
-    //return;
+    // Calculate who the players are.
+    $uid_a = mention_to_user_id($tokens[1]);
+    $uid_b = mention_to_user_id($tokens[3]);
+    $uid_c = mention_to_user_id($tokens[5]);
+    $uid_d = mention_to_user_id($tokens[7]);
+
+    $player_a = init_user($uid_a);
+    $player_b = init_user($uid_b);
+    $player_c = init_user($uid_c);
+    $player_d = init_user($uid_d);
+    $player_a = update_user($player_a);
+    $player_b = update_user($player_b);
+    $player_c = update_user($player_c);
+    $player_d = update_user($player_d);
+
+    // Try to undo matches with these two players
+    command_undo(array($player_a, $player_b, $player_c, $player_d));
+}
+
+//Initiate cURL.
+$ch = curl_init($response_url);
+
+//Encode the array into JSON.
+$jsonDataEncoded = json_encode($async_rsp);
+
+//Tell cURL that we want to send a POST request.
+curl_setopt($ch, CURLOPT_POST, 1);
+
+//Attach our encoded JSON string to the POST fields.
+curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonDataEncoded);
+
+//Set the content type to application/json
+curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json')); 
+ 
+//Execute the request
+$result = curl_exec($ch);
 }
 // Blank command or bad syntax, print usage
 else {
@@ -1272,7 +1530,7 @@ else {
     $context = $bot_name . " v" . $version . ", beep boop\r\n";
     $context .= $player_count . " players, " . $match_count . " matches";
 
-    $text .= "Usage:\r\n";
+    $text = "Usage:\r\n";
     $text .= "`" . $command_name . " [command]`\r\n";
 
     add_response_section_context($context);
@@ -1286,10 +1544,11 @@ else {
     $text .= "• *@player_a* vs *@player_b*\r\n";
     $text .= "• *@player_a* beat *@player_b*\r\n";
     $text .= "• *@player_a* and *@player_b* beat *@player_c* and *@player_d*\r\n";
+    $text .= "• undo *@player_a* vs *@player_b*\r\n";
     $text .= "\r\n";
     $text .= "You may use 'I' and 'me' instead of your own *@mention*.";
     
-    add_response_section_fancy_text($text . "\r\n" . $current_time . "\r\n" . $request_time);
+    add_response_section_fancy_text($text);
     add_response_section_divider();
     respond_private();
 }
